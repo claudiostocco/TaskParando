@@ -69,6 +69,7 @@ procedure TsvcTaskParando.ServiceExecute(Sender: TService);
 var iTm: Cardinal;
     tskAux: ITask;
     i: Integer;
+    thPool: TThreadPool;
 begin
    RegLog('svc.log','Iniciando Execute');
    iTm := GetTickCount + 2000;
@@ -77,8 +78,14 @@ begin
       ServiceThread.ProcessRequests(False);
       if GetTickCount > iTm then
       begin
-         RegLog('ServiceExecute.log','Criando Task: TTask.Run()');
-         tskAux := TTask.Run(Verifica);
+         RegLog('ServiceExecute.log','Verificando e criando thPool');
+         if Assigned(thPool) and (tskAux <> nil) and Assigned(tskAux) and (tskAux.Id > 10) then
+         begin
+            FreeAndNil(thPool);
+         end;
+         if not Assigned(thPool) then thPool := TThreadPool.Create;
+         RegLog('ServiceExecute.log','Criando Task: TTask.Run() -- thPool.MaxWorkerThreads: '+thPool.MaxWorkerThreads.ToString);
+         tskAux := TTask.Run(Verifica,thPool);
          RegLog('ServiceExecute.log','Após criar Task, TaskId: '+tskAux.Id.ToString+' TaskStatus: '+Integer(TTaskStatus(tskAux.Status)).ToString);
 
          i := 0;
