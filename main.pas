@@ -14,6 +14,7 @@ type
     function ImplPVerifica: TProc;
     procedure Verifica;
     procedure RegLog(NomeLog, Msg: String);
+    procedure CertificateInfo;
   public
     function GetServiceController: TServiceController; override;
     { Public declarations }
@@ -24,13 +25,45 @@ var
 
 implementation
 
-uses System.Threading;
+uses System.Threading, BelssLibCert;
 
 {$R *.dfm}
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
   svcTaskParando.Controller(CtrlCode);
+end;
+
+procedure TsvcTaskParando.CertificateInfo;
+var lbDados: TStringList;
+    sCNPJ: String;
+    i: Integer;
+    Context: PCCERT_CONTEXT;
+    hCS: HCERTSTORE;
+begin
+   sCNPJ := '05752059000150';
+   lbDados := TStringList.Create;
+   if sCNPJ.Length = 14 then
+   begin
+      lbDados.Add('Buscando certificado no repositório do Windows por CNPJ');
+      hCS := CertSystemStore;
+      Context := CertCertContext(sCNPJ,hCS,nil);
+      i := 0;
+      while Context <> nil do
+      begin
+         Inc(i);
+         lbDados.Add('Certificado: '+i.ToString);
+         lbDados.Add('Emitido para:'+#13+CertNome(Context));
+         lbDados.Add('Emitido por:'+#13+CertIssuer(Context));
+         lbDados.Add('Número de série:'+#13+CertNumeroSerie(Context));
+         lbDados.Add('Valido até:'+#13+FormatDateTime('dd/mm/yyyy hh:nn:ss',CertValidade(Context)));
+
+         Context := CertCertContext(sCNPJ,hCS,Context);
+         if Context <> nil then
+            lbDados.Add('======================================================');
+      end;
+      lbDados.SaveToFile(sPath+'CertificateInfo.txt');
+   end;
 end;
 
 function TsvcTaskParando.GetServiceController: TServiceController;
@@ -84,6 +117,9 @@ begin
             FreeAndNil(thPool);
          end;
          if not Assigned(thPool) then thPool := TThreadPool.Create;
+
+CertificateInfo;
+
          RegLog('ServiceExecute.log','Criando Task: TTask.Run() -- thPool.MaxWorkerThreads: '+thPool.MaxWorkerThreads.ToString);
          tskAux := TTask.Run(Verifica,thPool);
          RegLog('ServiceExecute.log','Após criar Task, TaskId: '+tskAux.Id.ToString+' TaskStatus: '+Integer(TTaskStatus(tskAux.Status)).ToString);

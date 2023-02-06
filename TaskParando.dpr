@@ -2,7 +2,10 @@ program TaskParando;
 
 uses
   Vcl.SvcMgr,
-  main in 'main.pas' {svcTaskParando: TService};
+  main in 'main.pas' {svcTaskParando: TService},
+  BelssLibCert in '..\..\lib\BelssLibCert.pas',
+  WinCrypt in '..\..\lib\WinCrypt.pas',
+  EncDecBase64 in '..\..\lib\EncDecBase64.pas';
 
 {$R *.RES}
 
